@@ -1,27 +1,44 @@
 import React, {useState} from 'react';
-import {View, StyleSheet, TouchableWithoutFeedback, Image} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import {Input, Button, Text, Icon, IconElement} from '@ui-kitten/components';
 import {Logo} from '../resources/images';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../routes';
+import {useAppDispatch} from '../redux/hooks';
+import {userActions} from '../actions/userActions';
+import {StackNavigationProp} from '@react-navigation/stack';
+
+type LoginScreenProps = {
+  navigation: StackNavigationProp<RootStackParamList, 'Login'>;
+};
 
 const AlertIcon = (props: any): IconElement => (
   <Icon {...props} name="alert-circle-outline" />
 );
 
-const LoginScreen = () => {
+const LoginScreen = ({navigation}: LoginScreenProps) => {
   const [data, setData] = useState({
     username: '',
     password: '',
   });
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dispatch = useAppDispatch();
 
-  const handleLogin = () => {
-    console.log(data);
+  const handleLogin = async () => {
+    setIsLoading(true);
+    await dispatch(userActions.login(data))
+      .unwrap()
+      .then(() => navigation.navigate('Home'))
+      .catch((e: any) => Alert.alert(e?.message))
+      .finally(() => setIsLoading(false));
   };
 
   const handleRegister = () => {
@@ -69,7 +86,13 @@ const LoginScreen = () => {
           secureTextEntry={secureTextEntry}
           onChangeText={password => setData(prev => ({...prev, password}))}
         />
-        <Button style={{width: '100%'}} onPress={handleLogin}>
+        <Button
+          style={{width: '100%'}}
+          onPress={handleLogin}
+          disabled={data.username === '' || data.password === ''}
+          accessoryRight={
+            isLoading ? <ActivityIndicator color={'white'} /> : <></>
+          }>
           Login
         </Button>
         <Button

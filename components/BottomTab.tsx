@@ -23,9 +23,10 @@ const BottomTabBar = ({navigation, state}: any) => (
 
 const TabNavigator = () => (
   <Navigator
+    initialRouteName="Todo"
     screenOptions={{headerShown: false}}
     tabBar={props => <BottomTabBar {...props} />}>
-    <Screen name="Home" component={TodoScreen} />
+    <Screen name="Todo" component={TodoScreen} />
     <Screen name="Profile" component={ProfileScreen} />
   </Navigator>
 );

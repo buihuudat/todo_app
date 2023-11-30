@@ -1,7 +1,10 @@
 import React, {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, Card, Input, Modal, Radio, Text} from '@ui-kitten/components';
+import {ActivityIndicator, StyleSheet, View} from 'react-native';
+import {Button, Card, Input, Modal, Text} from '@ui-kitten/components';
 import {TodoType} from '../types/todoType';
+import {useAppDispatch} from '../redux/hooks';
+import {todoActions} from '../actions/todoActions';
+import {dataStorage} from '../utils/handlers/dataStore';
 
 interface Props {
   visible: boolean;
@@ -10,15 +13,33 @@ interface Props {
 
 export const AddTodoListModal = (props: Props): React.ReactElement => {
   const {visible, setVisible} = props;
-  const [data, setData] = useState<TodoType>();
+  const [data, setData] = useState<TodoType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {};
+  const dispatch = useAppDispatch();
+
+  const handleClose = () => {
+    setIsLoading(false);
+    setData(null);
+    setVisible(false);
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    const user = await dataStorage.getItem('user');
+    await dispatch(todoActions.create({todo: data!, uid: user}))
+      .unwrap()
+      .then(() => {
+        handleClose();
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   return (
     <Modal
       visible={visible}
       backdropStyle={styles.backdrop}
-      onBackdropPress={() => setVisible(false)}>
+      onBackdropPress={handleClose}>
       <Card disabled={true}>
         <Text style={styles.title}>Add Todo</Text>
 
@@ -37,16 +58,18 @@ export const AddTodoListModal = (props: Props): React.ReactElement => {
             value={data?.description}
             onChangeText={description => setData({...data!, description})}
           />
-
-          <Radio
-            style={{marginBottom: 16}}
-            checked={data?.completed}
-            onChange={completed => setData({...data!, completed})}>
-            Completed
-          </Radio>
         </View>
 
-        <Button onPress={handleSubmit}>ADD</Button>
+        <Button
+          onPress={handleSubmit}
+          accessoryRight={
+            isLoading ? <ActivityIndicator color={'white'} /> : <></>
+          }
+          disabled={
+            data?.title === undefined || data?.description === undefined
+          }>
+          ADD
+        </Button>
       </Card>
     </Modal>
   );

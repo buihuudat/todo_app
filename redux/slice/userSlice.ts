@@ -13,9 +13,19 @@ const initialState: InitialProps = {
 const userSlice = createSlice({
   name: 'user',
   initialState,
-  reducers: {},
+  reducers: {
+    removeUser: state => {
+      state.user = null;
+    },
+  },
   extraReducers(builder) {
     builder
+      .addCase(userActions.get.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(userActions.update.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
       .addCase(userActions.login.fulfilled, (state, action) => {
         state.user = action.payload;
       })
@@ -25,4 +35,5 @@ const userSlice = createSlice({
   },
 });
 
+export const {removeUser} = userSlice.actions;
 export default userSlice.reducer;

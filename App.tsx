@@ -10,26 +10,32 @@ import * as eva from '@eva-design/eva';
 import {ApplicationProvider, IconRegistry} from '@ui-kitten/components';
 import {EvaIconsPack} from '@ui-kitten/eva-icons';
 import RegisterScreen from './screen/RegisterScreen';
+import SplashScreen from './screen/SplashScreen';
+import {Provider} from 'react-redux';
+import {store} from './redux/store';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 
 const App = () => {
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <IconRegistry icons={EvaIconsPack} />
-        <ApplicationProvider {...eva} theme={eva.light}>
-          <RootStack.Navigator
-            screenOptions={{
-              headerShown: false,
-            }}>
-            <RootStack.Screen name="Home" component={BottomTab} />
-            <RootStack.Screen name="Login" component={LoginScreen} />
-            <RootStack.Screen name="Register" component={RegisterScreen} />
-          </RootStack.Navigator>
-        </ApplicationProvider>
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <Provider store={store}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <IconRegistry icons={EvaIconsPack} />
+          <ApplicationProvider {...eva} theme={eva.light}>
+            <RootStack.Navigator
+              screenOptions={{
+                headerShown: false,
+              }}>
+              <RootStack.Screen name="Splash" component={SplashScreen} />
+              <RootStack.Screen name="Home" component={BottomTab} />
+              <RootStack.Screen name="Login" component={LoginScreen} />
+              <RootStack.Screen name="Register" component={RegisterScreen} />
+            </RootStack.Navigator>
+          </ApplicationProvider>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </Provider>
   );
 };
 

@@ -8,6 +8,5 @@ export const todoApi = {
   get: (id: string, uid: string) => axiosClient.get(`/todos/${uid}/${id}`),
   upate: (todo: TodoType, uid: string) =>
     axiosClient.put(`/todos/${uid}/${todo._id}`, todo),
-  delete: (id: string, uid: string) =>
-    axiosClient.delete(`/todos/${uid}/${id}`),
+  delete: (id: string) => axiosClient.delete(`/todos/${id}`),
 };

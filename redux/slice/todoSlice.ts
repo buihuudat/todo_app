@@ -15,7 +15,11 @@ const initialState: InitialProps = {
 const todoSlice = createSlice({
   name: 'todo',
   initialState,
-  reducers: {},
+  reducers: {
+    clearTodosList: state => {
+      state.todos = [];
+    },
+  },
   extraReducers(builder) {
     builder
       .addCase(todoActions.get.fulfilled, (state, action) => {
@@ -46,14 +50,16 @@ const todoSlice = createSlice({
       .addMatcher(
         isAnyOf(todoActions.delete.pending, todoActions.delete.rejected),
         (state, action) => {
-          const currentTodoId = action.meta.arg.id;
+          const currentTodoId = action.meta.arg;
           if (action.type === todoActions.delete.pending.type) {
-            state.todos ===
-              state.todos.filter(todo => todo._id !== currentTodoId);
+            state.todos = state.todos.filter(
+              todo => todo._id !== currentTodoId,
+            );
           }
         },
       );
   },
 });
 
+export const {clearTodosList} = todoSlice.actions;
 export default todoSlice.reducer;

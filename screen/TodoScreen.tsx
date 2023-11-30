@@ -1,96 +1,138 @@
-import React, {useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
-  Text,
-  Button,
-  List,
-  ListItem,
-  Icon,
-  Radio,
-  CheckBox,
-} from '@ui-kitten/components';
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import {Text, Button, List, ListItem, CheckBox} from '@ui-kitten/components';
 import {TodoType} from '../types/todoType';
 import {AddTodoListModal} from '../components/AddTodoModal';
 import moment from 'moment';
+import {Swipeable} from 'react-native-gesture-handler';
+import {useAppDispatch, useAppSelector} from '../redux/hooks';
+import {todoActions} from '../actions/todoActions';
+import {dataStorage} from '../utils/handlers/dataStore';
+import {RootState} from '../redux/store';
 
-const TodoListScreen = ({navigation}: any) => {
+const TodoListScreen = () => {
   const [visible, setVisible] = useState(false);
-  const [todos, setTodos] = useState<TodoType[]>([
-    {
-      _id: '123',
-      title: 'Buy groceries',
-      description: 'Go to the supermarket and buy some essentials.',
-      completed: false,
-      auth: 'John Doe',
-      createdAt: '2023-01-01T10:00:00',
-    },
-    {
-      _id: '124',
-      title: 'Read a book',
-      description: 'Finish reading the latest novel.',
-      completed: true,
-      auth: 'Jane Doe',
-      createdAt: '2023-01-02T15:30:00',
-    },
-    {
-      _id: '125',
-      title: 'Go for a run',
-      description: 'Jog in the park for at least 30 minutes.',
-      completed: false,
-      auth: 'Bob Smith',
-      createdAt: '2023-01-03T08:45:00',
-    },
-  ]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const user = useAppSelector((state: RootState) => state.user.user);
+  const todos = useAppSelector((state: RootState) => state.todo.todos);
+
+  const sortedTodos = useMemo(() => {
+    let currentTodos = [...todos];
+    return currentTodos.sort((a, b) =>
+      a.completed === b.completed ? 0 : a.completed ? 1 : -1,
+    );
+  }, [todos]);
+
+  const dispatch = useAppDispatch();
+
+  const fetchTodos = async () => {
+    setRefreshing(true);
+    const user = await dataStorage.getItem('user');
+    await dispatch(todoActions.getAll(user));
+    setRefreshing(false);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
   const addTodo = () => {
     setVisible(true);
   };
 
-  const handleCheck = (id: string) => {};
+  const handleRefresh = async () => {
+    await fetchTodos();
+  };
+
+  const handleCheck = (todo: TodoType) => {
+    dispatch(
+      todoActions.update({
+        todo: {...todo, completed: !todo.completed},
+        uid: user?._id!,
+      }),
+    );
+  };
+
+  const handleDelete = (id: string) => {
+    dispatch(todoActions.delete(id));
+  };
 
   const renderItemAccessory = (todo: TodoType) => (
-    <CheckBox
-      checked={todo.completed}
-      onChange={() => handleCheck(todo._id!)}
-    />
+    <CheckBox checked={todo.completed} onChange={() => handleCheck(todo)} />
   );
 
+  const renderRightActions = (id: string) => {
+    return (
+      <TouchableOpacity
+        onPress={() => handleDelete(id)}
+        style={styles.deleteAction}>
+        <Text style={styles.deleteText}>Delete</Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderItem = ({item}: {item: TodoType}) => (
-    <ListItem
-      title={item.title}
-      description={
-        <View
-          style={{display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
-          <Text
+    <Swipeable renderRightActions={() => renderRightActions(item._id!)}>
+      <ListItem
+        title={item.title}
+        description={
+          <View
             style={{
-              fontSize: 18,
-              color: item.completed ? '#999' : '#000',
-              fontStyle: item.completed ? 'italic' : 'normal',
-              textDecorationLine: item.completed ? 'line-through' : 'none',
-              textDecorationStyle: 'solid',
-              textDecorationColor: '#000',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
             }}>
-            {item.description}
-          </Text>
-          <Text style={{fontSize: 14, fontStyle: 'italic'}}>
-            ({moment(item.createdAt).format('MMMM Do YYYY, h:mm:ss a')})
-          </Text>
-        </View>
-      }
-      accessoryRight={style => renderItemAccessory(item)}
-    />
+            <Text
+              style={{
+                fontSize: 18,
+                color: item.completed ? 'orange' : '#000',
+                fontStyle: item.completed ? 'italic' : 'normal',
+                textDecorationLine: item.completed ? 'line-through' : 'none',
+                textDecorationStyle: 'solid',
+                textDecorationColor: '#000',
+              }}>
+              {item.description}
+            </Text>
+            <Text style={{fontSize: 14, fontStyle: 'italic'}}>
+              ({moment(item.createdAt).format('MMMM Do YYYY, h:mm:ss a')})
+            </Text>
+          </View>
+        }
+        accessoryRight={() => renderItemAccessory(item)}
+      />
+    </Swipeable>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>My Todo</Text>
-      <List
-        style={styles.list}
-        data={todos}
-        renderItem={renderItem}
-        keyExtractor={item => item.createdAt}
-      />
-      <Button onPress={addTodo}>Add Todo</Button>
+      {isLoading ? (
+        <ActivityIndicator />
+      ) : !todos || !todos?.length ? (
+        <Text>You don't have Todo</Text>
+      ) : (
+        <List
+          style={styles.list}
+          data={sortedTodos}
+          renderItem={renderItem}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          keyExtractor={item => item.createdAt}
+        />
+      )}
+      <Button style={styles.btnAdd} onPress={addTodo}>
+        Add Todo
+      </Button>
       <AddTodoListModal visible={visible} setVisible={setVisible} />
     </View>
   );
@@ -108,6 +150,22 @@ const styles = StyleSheet.create({
   },
   list: {
     marginBottom: 16,
+  },
+
+  deleteAction: {
+    backgroundColor: 'red',
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'column',
+  },
+  deleteText: {
+    color: 'white',
+    fontWeight: '700',
+    padding: 5,
+    alignItems: 'center',
+  },
+  btnAdd: {
+    marginTop: 'auto',
   },
 });
 

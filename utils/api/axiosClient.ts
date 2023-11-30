@@ -8,7 +8,7 @@ let IP = '192.168.1.8';
 const PORT = 5000;
 export const host = `http://${IP}:${PORT}`;
 
-const baseURL = `http://${IP}:${PORT}/api/v1`;
+const baseURL = `http://${IP}:${PORT}`;
 
 const axiosClient = axios.create({
   baseURL,

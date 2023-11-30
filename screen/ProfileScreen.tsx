@@ -1,26 +1,62 @@
 import React, {useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, ActivityIndicator, Alert} from 'react-native';
 import {Text, Avatar, Button, Input} from '@ui-kitten/components';
 import {UserType} from '../types/userType';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RootStackParamList} from '../routes';
+import {useAppDispatch, useAppSelector} from '../redux/hooks';
+import {RootState} from '../redux/store';
+import {userActions} from '../actions/userActions';
+import {LogoutModal} from '../components/LogoutModal';
+import {dataStorage} from '../utils/handlers/dataStore';
+import {clearTodosList} from '../redux/slice/todoSlice';
+import {removeUser} from '../redux/slice/userSlice';
 
-const sampleUser: UserType = {
-  email: 'user@example.com',
-  username: 'sample_user',
-  password: '******',
-  fullname: 'Sample User',
-  avatar: 'https://placekitten.com/200/200',
+type ProfileScreenProps = {
+  navigation: StackNavigationProp<RootStackParamList, 'Profile'>;
 };
 
-const ProfileScreen = () => {
-  const {email, username, fullname, avatar} = sampleUser;
-  const [disable, setDisable] = useState(true);
+const ProfileScreen = ({navigation}: ProfileScreenProps) => {
+  const user = useAppSelector((state: RootState) => state.user.user);
+  const {email, username, fullname, avatar} = user!;
+  const [data, setData] = useState<UserType>(user!);
   const [edit, setEdit] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [onLogout, setOnLogout] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  const dispatch = useAppDispatch();
 
   const handleEdit = () => {
     setEdit(!edit);
   };
 
-  const handleSubmit = () => {};
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    dispatch(userActions.update(data))
+      .unwrap()
+      .then(() => {
+        setEdit(false);
+      })
+      .catch(e => Alert.alert(e?.message))
+      .finally(() => setIsLoading(false));
+  };
+
+  const onShowLogoutModal = () => {
+    setVisible(true);
+  };
+
+  const handleLogout = async () => {
+    setOnLogout(true);
+
+    await dataStorage.removeItem('user').then(() => {
+      navigation.navigate('Login');
+      // dispatch(clearTodosList());
+      // dispatch(removeUser());
+    });
+    setVisible(false);
+    setIsLoading(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -32,25 +68,29 @@ const ProfileScreen = () => {
           label={'Fullname'}
           style={styles.input}
           disabled={!edit}
-          defaultValue={sampleUser.fullname}
+          defaultValue={fullname}
+          onChangeText={fullname => setData(prev => ({...prev, fullname}))}
         />
         <Input
           label={'Email'}
           style={styles.input}
           disabled={!edit}
-          defaultValue={sampleUser.email}
+          defaultValue={email}
+          onChangeText={email => setData(prev => ({...prev, email}))}
         />
         <Input
           label={'Username'}
           style={styles.input}
           disabled={!edit}
-          defaultValue={sampleUser.username}
+          defaultValue={username}
+          onChangeText={username => setData(prev => ({...prev, username}))}
         />
         <Input
           label={'Password'}
           style={styles.input}
           disabled={!edit}
           defaultValue={'******'}
+          onChangeText={password => setData(prev => ({...prev, password}))}
         />
         {edit && (
           <Input
@@ -58,6 +98,9 @@ const ProfileScreen = () => {
             style={styles.input}
             disabled={!edit}
             defaultValue={'******'}
+            onChangeText={confirmPassword =>
+              setData(prev => ({...prev, confirmPassword}))
+            }
           />
         )}
         {edit && (
@@ -65,7 +108,10 @@ const ProfileScreen = () => {
             style={{width: 300, margin: 2}}
             appearance="outline"
             status={'success'}
-            onPress={handleSubmit}>
+            onPress={handleSubmit}
+            accessoryRight={
+              isLoading ? <ActivityIndicator color={'green'} /> : <></>
+            }>
             Submit
           </Button>
         )}
@@ -77,6 +123,20 @@ const ProfileScreen = () => {
           {edit ? 'Cancel' : 'Edit Profile'}
         </Button>
       </View>
+      <Button
+        style={{width: 300, margin: 2}}
+        appearance="outline"
+        status={'danger'}
+        onPress={onShowLogoutModal}>
+        Logout
+      </Button>
+
+      <LogoutModal
+        visible={visible}
+        loading={onLogout}
+        setVisible={setVisible}
+        handleLogout={handleLogout}
+      />
     </View>
   );
 };

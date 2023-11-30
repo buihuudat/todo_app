@@ -44,15 +44,12 @@ export const todoActions = {
       }
     },
   ),
-  delete: createAsyncThunk(
-    'todo/delete',
-    async ({id, uid}: {id: string; uid: string}) => {
-      try {
-        const res = await todoApi.delete(id, uid);
-        return res.data;
-      } catch (error) {
-        throw error;
-      }
-    },
-  ),
+  delete: createAsyncThunk('todo/delete', async (id: string) => {
+    try {
+      const res = await todoApi.delete(id);
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  }),
 };
